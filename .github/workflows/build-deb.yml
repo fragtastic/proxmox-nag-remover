@@ -71,7 +71,7 @@ jobs:
 
           dpkg-deb --info "$deb_path"
           dpkg-deb --contents "$deb_path"
-          lintian --fail-on error "$changes_path"
+          lintian --profile debian --fail-on error "$changes_path"
 
           mkdir -p artifacts
           cp "$deb_path" artifacts/
