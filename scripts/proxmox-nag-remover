@@ -1,0 +1,130 @@
+#!/bin/sh
+# Remove the Proxmox VE "No valid subscription" modal without modifying any
+# other proxmoxlib.js content.  This script deliberately refuses unfamiliar
+# upstream layouts rather than applying a broad replacement.
+
+set -u
+
+DEFAULT_TARGET=/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+MARKER='proxmox-nag-remover: subscription dialog disabled'
+command=apply
+target=$DEFAULT_TARGET
+restart=yes
+
+usage() {
+    cat <<'EOF'
+Usage: proxmox-nag-remover [apply|status|restore] [--target PATH] [--no-restart]
+
+--target is intended for testing.  The normal target is proxmoxlib.js.
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        apply|status|restore) command=$1 ;;
+        --target) shift; [ "$#" -gt 0 ] || { usage >&2; exit 2; }; target=$1 ;;
+        --no-restart) restart=no ;;
+        -h|--help) usage; exit 0 ;;
+        *) usage >&2; exit 2 ;;
+    esac
+    shift
+done
+
+backup=${target}.proxmox-nag-remover.bak
+
+is_patched() {
+    grep -Fq "/* $MARKER */ void (" "$target" 2>/dev/null
+}
+
+# Return success only for the exact call shape this package supports: the
+# object literal's first property must be title: gettext('No valid subscription').
+is_patchable() {
+    perl -0777 -ne 'my $n = () = /(?m)^[ \t]*Ext\.Msg\.show\(\s*\{\s*title\s*:\s*gettext\(\s*(["'"'"'])No valid subscription\1\s*\)/g; exit($n == 1 ? 0 : 1)' "$target"
+}
+
+render_patched() {
+    perl -0777 -pe 's{(?m)^([ \t]*)Ext\.Msg\.show\(\s*(\{\s*title\s*:\s*gettext\(\s*(["'"'"'])No valid subscription\3\s*\))}{$1/* proxmox-nag-remover: subscription dialog disabled */ void ($2}' "$1"
+}
+
+restart_pveproxy() {
+    [ "$restart" = yes ] || return 0
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl try-restart pveproxy.service >/dev/null 2>&1 && return 0
+    fi
+    if command -v service >/dev/null 2>&1; then
+        service pveproxy restart >/dev/null 2>&1 && return 0
+    fi
+    # A missing service manager is normal in chroots and containers.
+    return 0
+}
+
+apply() {
+    [ -f "$target" ] || { echo "proxmox-nag-remover: target not found: $target" >&2; return 1; }
+    if ! is_patchable; then
+        if is_patched; then
+            echo "proxmox-nag-remover: already patched"
+            return 0
+        fi
+        echo "proxmox-nag-remover: supported subscription dialog not found; left unchanged" >&2
+        return 1
+    fi
+
+    # The upstream file may have been replaced by an update.  Capture that
+    # current pristine version immediately before every new patch operation.
+    tmp=$(mktemp "${target}.proxmox-nag-remover.XXXXXX") || return 1
+    trap 'rm -f "$tmp"' EXIT HUP INT TERM
+    cp -- "$target" "$backup" || return 1
+    render_patched "$target" >"$tmp" || return 1
+    if cmp -s "$target" "$tmp"; then
+        echo "proxmox-nag-remover: no supported change made" >&2
+        return 1
+    fi
+    chmod --reference="$target" "$tmp" || return 1
+    chown --reference="$target" "$tmp" 2>/dev/null || true
+    mv -f -- "$tmp" "$target" || return 1
+    trap - EXIT HUP INT TERM
+    restart_pveproxy
+    echo "proxmox-nag-remover: patched"
+}
+
+restore() {
+    [ -f "$target" ] || { echo "proxmox-nag-remover: target not found: $target" >&2; return 1; }
+    [ -f "$backup" ] || { echo "proxmox-nag-remover: no backup available" >&2; return 1; }
+    if cmp -s "$target" "$backup"; then
+        echo "proxmox-nag-remover: already restored"
+        return 0
+    fi
+    expected=$(mktemp "${target}.proxmox-nag-remover.expected.XXXXXX") || return 1
+    trap 'rm -f "$expected"' EXIT HUP INT TERM
+    if ! render_patched "$backup" >"$expected" || ! cmp -s "$target" "$expected"; then
+        echo "proxmox-nag-remover: target differs from the exact saved patch; refusing to overwrite it" >&2
+        return 1
+    fi
+    cp -- "$backup" "$expected" || return 1
+    chmod --reference="$target" "$expected" || return 1
+    chown --reference="$target" "$expected" 2>/dev/null || true
+    mv -f -- "$expected" "$target" || return 1
+    trap - EXIT HUP INT TERM
+    restart_pveproxy
+    echo "proxmox-nag-remover: restored"
+}
+
+status() {
+    [ -f "$target" ] || { echo "missing: $target"; return 1; }
+    if is_patchable; then
+        echo unpatched
+        return 1
+    fi
+    if is_patched; then
+        echo patched
+        return 0
+    fi
+    echo unsupported
+    return 2
+}
+
+case "$command" in
+    apply) apply ;;
+    status) status ;;
+    restore) restore ;;
+esac

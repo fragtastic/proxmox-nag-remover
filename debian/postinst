@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Unknown upstream layouts are deliberately left untouched.  Do not
+        # make a package install fail merely because the optional patch cannot
+        # safely be applied.
+        /usr/sbin/proxmox-nag-remover apply || true
+        ;;
+esac
+
+exit 0

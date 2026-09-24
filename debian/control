@@ -1,0 +1,14 @@
+Source: proxmox-nag-remover
+Section: admin
+Priority: optional
+Maintainer: Proxmox Nag Remover Maintainers <maintainers@example.invalid>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: proxmox-nag-remover
+Architecture: all
+Depends: ${misc:Depends}, perl, proxmox-widget-toolkit
+Description: reversible no-subscription modal patch for Proxmox VE
+ Patches only the supported Proxmox VE subscription reminder call and reapplies
+ it after APT transactions. This is an unofficial, non-production utility.

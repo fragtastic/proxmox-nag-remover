@@ -1,0 +1,3 @@
+// Reapply after package operations that replace proxmoxlib.js.  Never allow
+// this optional customization to change the outcome of an APT transaction.
+DPkg::Post-Invoke { "if [ -x /usr/sbin/proxmox-nag-remover ]; then /usr/sbin/proxmox-nag-remover apply >/dev/null 2>&1 || true; fi"; };

@@ -1,0 +1,2 @@
+scripts/proxmox-nag-remover usr/sbin/
+debian/99proxmox-nag-remover etc/apt/apt.conf.d/

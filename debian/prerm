@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove)
+        # Do not restore during an upgrade: the new package's postinst will
+        # reapply against the version supplied by the upgraded Proxmox package.
+        /usr/sbin/proxmox-nag-remover restore || true
+        ;;
+esac
+
+exit 0

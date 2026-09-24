@@ -1,0 +1,7 @@
+/artifacts/
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/proxmox-nag-remover/
+/debian/proxmox-nag-remover.debhelper.log
+/debian/proxmox-nag-remover.substvars

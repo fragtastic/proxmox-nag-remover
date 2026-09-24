@@ -1,0 +1,5 @@
+proxmox-nag-remover (1.0.0) unstable; urgency=medium
+
+  * Initial package.
+
+ -- Proxmox Nag Remover Maintainers <maintainers@example.invalid>  Thu, 24 Sep 2026 00:00:00 +0000
