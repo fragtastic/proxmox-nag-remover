@@ -29,13 +29,20 @@ unsupported upstream layout. Purging removes the saved backup.
 ## Build and test
 
 ```sh
-# On Debian/Proxmox, install the build tools once:
-sudo apt install build-essential devscripts debhelper
+# On Debian/Proxmox, install the standard packaging tools once:
+sudo apt install build-essential debhelper
 
 make test
 make build
 sudo apt install ../proxmox-nag-remover_1.0.0_all.deb
 ```
+
+The package itself compiles no native code. `build-essential` is present because
+Debian's standard `dpkg-buildpackage` dependency check treats it as an implicit
+build dependency; it is not included in the resulting package. Install
+`lintian` as well if you want to run the same package-policy checks used by CI.
+The optional `dch` command shown below is provided by the `devscripts` package;
+the changelog can also be edited manually.
 
 Use `proxmox-nag-remover status`, `apply`, or `restore` to inspect or control
 the patch. `--target PATH --no-restart` exists for fixture testing.

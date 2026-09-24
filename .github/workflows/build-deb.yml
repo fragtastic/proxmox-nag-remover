@@ -28,7 +28,6 @@ jobs:
           sudo apt-get install --no-install-recommends --yes \
             build-essential \
             debhelper \
-            devscripts \
             lintian
 
       - name: Validate release tag
