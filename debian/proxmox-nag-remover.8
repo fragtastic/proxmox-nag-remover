@@ -1,0 +1,54 @@
+.TH PROXMOX-NAG-REMOVER 8 "September 2026" "proxmox-nag-remover" "System Administration"
+.SH NAME
+proxmox-nag-remover \- manage the Proxmox VE subscription-dialog patch
+.SH SYNOPSIS
+.B proxmox-nag-remover
+.RI [ apply | status | restore ]
+.RI [ --target\  PATH ]
+.RI [ --no-restart ]
+.SH DESCRIPTION
+.B proxmox-nag-remover
+applies, reports, or safely restores a narrowly targeted modification to the
+Proxmox VE web interface's no-subscription dialog.
+The package's APT hook runs
+.B apply
+after package transactions so Proxmox widget-toolkit upgrades are patched
+again when their layout is supported.
+.SH COMMANDS
+.TP
+.B apply
+Patch the supported subscription-dialog call. This is the default command.
+.TP
+.B status
+Report whether the target is patched, unpatched, or unsupported.
+.TP
+.B restore
+Restore the saved upstream file only when the current target exactly matches
+the patch generated from that backup.
+.SH OPTIONS
+.TP
+.BI --target\  PATH
+Operate on an alternate file. This option is primarily intended for testing.
+.TP
+.B --no-restart
+Do not restart
+.BR pveproxy (8)
+after changing the target.
+.TP
+.BR -h , " --help"
+Show a short usage message.
+.SH FILES
+.TP
+.I /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+Default patch target.
+.TP
+.I /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js.proxmox-nag-remover.bak
+Saved upstream file used for guarded restoration.
+.TP
+.I /etc/apt/apt.conf.d/99proxmox-nag-remover
+APT hook that reapplies the patch after package operations.
+.SH EXIT STATUS
+Zero indicates success. For
+.BR status ,
+zero means patched, one means unpatched or missing, and two means the target
+layout is unsupported.

@@ -1,7 +1,7 @@
 Source: proxmox-nag-remover
 Section: admin
 Priority: optional
-Maintainer: Proxmox Nag Remover Maintainers <maintainers@example.invalid>
+Maintainer: fragtastic <fragtastic@users.noreply.github.com>
 Build-Depends: debhelper-compat (= 13)
 Standards-Version: 4.6.2
 Rules-Requires-Root: no

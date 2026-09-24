@@ -15,7 +15,7 @@ permissions:
 jobs:
   build:
     name: Test and build .deb
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -48,29 +48,30 @@ jobs:
             exit 1
           fi
 
-      - name: Run tests
-        run: make test
-
-      - name: Check build dependencies
-        run: dpkg-checkbuilddeps
-
-      - name: Build binary package
+      # dpkg-buildpackage checks Build-Depends, and debhelper invokes the
+      # Makefile's test target as part of the standard binary build sequence.
+      - name: Build and test binary package
         run: make build
 
       - name: Collect and validate package
         shell: bash
         run: |
           set -euo pipefail
+          shopt -s nullglob
 
-          deb_path="$(find .. -maxdepth 1 -type f -name 'proxmox-nag-remover_*_all.deb' -print -quit)"
-          if [[ -z "$deb_path" ]]; then
-            echo "Expected Debian package was not produced" >&2
+          package_version="$(dpkg-parsechangelog -S Version)"
+          deb_path="../proxmox-nag-remover_${package_version}_all.deb"
+          changes_files=(../proxmox-nag-remover_"${package_version}"_*.changes)
+
+          if [[ ! -f "$deb_path" || "${#changes_files[@]}" -ne 1 ]]; then
+            echo "Expected package outputs were not produced" >&2
             exit 1
           fi
+          changes_path="${changes_files[0]}"
 
           dpkg-deb --info "$deb_path"
           dpkg-deb --contents "$deb_path"
-          lintian --fail-on error "$deb_path"
+          lintian --fail-on error "$changes_path"
 
           mkdir -p artifacts
           cp "$deb_path" artifacts/
@@ -79,7 +80,10 @@ jobs:
             sha256sum ./*.deb > SHA256SUMS
           )
 
-      - name: Upload Debian package
+      # This artifact is only an internal handoff to the release job. Branch,
+      # pull-request, and manual builds do not retain disposable artifacts.
+      - name: Pass package to release job
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v7
         with:
           name: proxmox-nag-remover-${{ github.sha }}
@@ -92,7 +96,7 @@ jobs:
     name: Publish GitHub Release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -105,13 +109,21 @@ jobs:
           path: artifacts
 
       - name: Publish release and assets
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
+          set -euo pipefail
+
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "proxmox-nag-remover ${GITHUB_REF_NAME#v}" \
+              --generate-notes
+          fi
+
+          gh release upload "$GITHUB_REF_NAME" \
             artifacts/*.deb \
             artifacts/SHA256SUMS \
-            --verify-tag \
-            --title "proxmox-nag-remover ${GITHUB_REF_NAME#v}" \
-            --generate-notes
+            --clobber

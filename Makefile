@@ -11,5 +11,6 @@ build:
 test:
 	sh tests/test-proxmox-nag-remover.sh
 
+# There are no generated upstream files to clean. Debhelper performs its own
+# package-tree cleanup after this target returns.
 clean:
-	dh_clean

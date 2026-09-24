@@ -29,7 +29,7 @@ unsupported upstream layout. Purging removes the saved backup.
 ## Build and test
 
 ```sh
-# On Debian/Proxmox, install the standard packaging tools once:
+# On Debian/Proxmox, install the packaging tools once:
 sudo apt install build-essential debhelper
 
 make test
@@ -37,12 +37,13 @@ make build
 sudo apt install ../proxmox-nag-remover_1.0.0_all.deb
 ```
 
-The package itself compiles no native code. `build-essential` is present because
-Debian's standard `dpkg-buildpackage` dependency check treats it as an implicit
-build dependency; it is not included in the resulting package. Install
-`lintian` as well if you want to run the same package-policy checks used by CI.
-The optional `dch` command shown below is provided by the `devscripts` package;
-the changelog can also be edited manually.
+The package compiles no native code. `build-essential` is only needed on the
+build machine because the standard `dpkg-buildpackage` dependency check
+requires Debian's baseline package-building environment; it is not a runtime
+dependency and is not included in the resulting package. Install `lintian` as
+well if you want to run the same package-policy checks used by CI. The optional
+`dch` command shown below is provided by the `devscripts` package; the changelog
+can also be edited manually.
 
 Use `proxmox-nag-remover status`, `apply`, or `restore` to inspect or control
 the patch. `--target PATH --no-restart` exists for fixture testing.
@@ -52,13 +53,13 @@ the patch. `--target PATH --no-restart` exists for fixture testing.
 The [build workflow](.github/workflows/build-deb.yml) runs for pushes, pull
 requests, and manual `workflow_dispatch` runs. It:
 
-1. Runs the fixture test suite.
-2. Builds the binary package with `dpkg-buildpackage`.
-3. Inspects the package and runs Lintian with errors treated as failures.
-4. Uses a temporary workflow artifact to pass the validated package between
-   jobs.
-5. For a stable SemVer tag, publishes a permanent GitHub Release containing
-   the `.deb` and `SHA256SUMS` with automatically generated release notes.
+1. Builds the binary package with `dpkg-buildpackage`, which checks declared
+   build dependencies and runs the fixture suite through debhelper.
+2. Inspects the package and runs Lintian with errors treated as failures.
+3. For a stable SemVer tag, uses a temporary workflow artifact only to pass the
+   validated package to the release job.
+4. Publishes a permanent GitHub Release containing the `.deb` and `SHA256SUMS`
+   with automatically generated release notes.
 
 Release tags must have the exact form `vMAJOR.MINOR.PATCH`, such as `v1.0.1`.
 The version without the `v` must exactly match the newest entry in

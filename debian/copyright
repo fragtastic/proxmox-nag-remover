@@ -3,7 +3,7 @@ Upstream-Name: proxmox-nag-remover
 Source: https://github.com/fragtastic/proxmox-nag-remover
 
 Files: *
-Copyright: 2026 Proxmox Nag Remover Maintainers
+Copyright: 2026 fragtastic
 License: MIT
 
 License: MIT

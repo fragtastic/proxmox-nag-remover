@@ -6,7 +6,7 @@ case "$1" in
         # Unknown upstream layouts are deliberately left untouched.  Do not
         # make a package install fail merely because the optional patch cannot
         # safely be applied.
-        /usr/sbin/proxmox-nag-remover apply || true
+        proxmox-nag-remover apply || true
         ;;
 esac
 
